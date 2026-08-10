@@ -1,0 +1,7 @@
+"use client";
+
+import { motion } from "framer-motion";
+import Container from "@/components/common/Container";
+
+const testimonials = [{ quote: "Char(t)ex gives our whole team the confidence to go from question to answer in minutes.", name: "Maya Chen", role: "VP Operations · Northstar" }, { quote: "It feels less like another dashboard and more like having an exceptional analyst on call.", name: "Daniel Reed", role: "Head of Growth · Vantage" }];
+export default function Testimonials() { return <section className="py-28 sm:py-36"><Container><div className="flex flex-col justify-between gap-8 md:flex-row md:items-end"><div><p className="text-sm font-medium text-cyan-200">WHAT TEAMS ARE SAYING</p><h2 className="mt-4 text-4xl font-semibold tracking-[-.04em] sm:text-5xl">Clarity compounds.</h2></div><p className="max-w-sm text-slate-400">Placeholder customer stories ready for your launch narrative.</p></div><div className="mt-12 grid gap-5 lg:grid-cols-2">{testimonials.map((testimonial, i) => <motion.figure key={testimonial.name} initial={{ opacity: 0, y: 16 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: i * .1 }} className="rounded-2xl border border-white/10 bg-white/[.03] p-7"><blockquote className="text-xl leading-8 tracking-tight text-slate-100">“{testimonial.quote}”</blockquote><figcaption className="mt-8 text-sm"><p className="font-medium text-white">{testimonial.name}</p><p className="mt-1 text-slate-500">{testimonial.role}</p></figcaption></motion.figure>)}</div></Container></section>; }
