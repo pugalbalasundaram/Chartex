@@ -28,7 +28,7 @@ export default function Hero() {
           </motion.p>
           <motion.div initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6, delay: 0.24 }} className="mt-10 flex flex-col justify-center gap-4 sm:flex-row">
             <MagneticButton>
-              <Link href="/chat" className="group inline-flex items-center justify-center gap-2 rounded-xl bg-primary px-8 py-4 font-bold text-primary-foreground shadow-[0_0_15px_rgba(34,211,238,0.3)] transition-all hover:bg-primary/90 hover:shadow-[0_0_25px_rgba(34,211,238,0.5)]">Start analyzing free <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" /></Link>
+              <Link href="/dashboard" className="group inline-flex items-center justify-center gap-2 rounded-xl bg-primary px-8 py-4 font-bold text-primary-foreground shadow-[0_0_15px_rgba(34,211,238,0.3)] transition-all hover:bg-primary/90 hover:shadow-[0_0_25px_rgba(34,211,238,0.5)]">Start analyzing free <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" /></Link>
             </MagneticButton>
             <MagneticButton>
               <a href="#dashboard" className="inline-flex items-center justify-center gap-2 rounded-xl border border-white/10 bg-white/5 px-8 py-4 font-bold text-white transition hover:bg-white/10 hover:border-white/20"><Bot className="h-4 w-4 text-primary" /> See it in action</a>

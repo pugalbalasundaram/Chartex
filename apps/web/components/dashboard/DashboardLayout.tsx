@@ -1,6 +1,6 @@
 "use client";
 
-import { ReactNode } from "react";
+import { ReactNode, Suspense } from "react";
 import Sidebar from "./Sidebar";
 import Navbar from "./Navbar";
 import FloatingUpload from "../upload/FloatingUpload";
@@ -76,7 +76,9 @@ export default function DashboardLayout({
         </main>
       </div>
 
-      <FloatingUpload />
+      <Suspense fallback={null}>
+        <FloatingUpload />
+      </Suspense>
     </div>
   );
 }

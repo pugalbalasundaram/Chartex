@@ -181,10 +181,10 @@ def profile_dataset(
         df = DatasetService._load_dataset(dataset.stored_filename)
         profile_data = DatasetProfiler.profile(df)
         return profile_data
-    except Exception as e:
+    except Exception:
         raise HTTPException(
             status_code=500,
-            detail=f"Failed to profile dataset: {str(e)}",
+            detail="Unable to profile this dataset.",
         )
 
 
@@ -291,5 +291,5 @@ def get_dataset_data(
         
         data = df.head(limit).to_dict(orient="records")
         return {"data": data}
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    except Exception:
+        raise HTTPException(status_code=500, detail="Unable to load dataset data.")

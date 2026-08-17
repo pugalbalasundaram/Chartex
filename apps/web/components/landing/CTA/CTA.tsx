@@ -22,7 +22,7 @@ export default function CTA() {
             <p className="mx-auto mt-8 max-w-xl text-lg text-slate-400 leading-relaxed">
               Start with your next spreadsheet. Leave with the answer everyone needs.
             </p>
-            <Link href="/chat" className="group mt-12 inline-flex items-center gap-2 rounded-xl bg-white px-8 py-4 font-bold text-slate-950 transition hover:bg-cyan-400">
+            <Link href="/dashboard" className="group mt-12 inline-flex items-center gap-2 rounded-xl bg-white px-8 py-4 font-bold text-slate-950 transition hover:bg-cyan-400">
               Create your workspace <ArrowRight className="h-4 w-4" />
             </Link>
           </div>
@@ -31,4 +31,3 @@ export default function CTA() {
     </section>
   ); 
 }
-

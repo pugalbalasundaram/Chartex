@@ -17,7 +17,7 @@ export default function RecentActivity({ datasets }: { datasets: Dataset[] }) {
         {datasets.length ? (
           datasets.slice(0, 4).map((dataset) => (
             <Link
-              href="/chat"
+              href={`/datasets/${dataset.id}`}
               key={dataset.id}
               className="group flex items-center justify-between rounded-2xl border border-white/5 bg-black/20 p-4 transition-all duration-300 hover:-translate-y-0.5 hover:border-white/20 hover:bg-black/40 hover:shadow-lg hover:shadow-primary/10"
             >
@@ -37,7 +37,7 @@ export default function RecentActivity({ datasets }: { datasets: Dataset[] }) {
           <div className="rounded-2xl border border-dashed border-white/[0.05] p-10 text-center">
             <Database className="mx-auto h-8 w-8 text-slate-700" />
             <p className="mt-4 text-sm text-slate-400">No datasets yet</p>
-            <Link className="mt-2 inline-block text-sm font-semibold text-cyan-400" href="/upload">Upload your first file</Link>
+            <Link className="mt-2 inline-block text-sm font-semibold text-cyan-400" href="/dashboard?upload=1">Upload your first file</Link>
           </div>
         )}
       </div>

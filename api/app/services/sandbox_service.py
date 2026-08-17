@@ -29,13 +29,23 @@ class SandboxService:
             worker_script = Path(__file__).parent / "sandbox_worker.py"
             
             try:
+                # Strip all environment variables except those strictly required by Python/Windows
+                # This prevents exposing DATABASE_URL, Supabase keys, or Gemini API keys to the generated code.
+                # NOTE: For true OS/container isolation in production, a containerized solution like Docker or gVisor is required.
+                safe_env = {
+                    "PATH": os.environ.get("PATH", ""),
+                    "SYSTEMROOT": os.environ.get("SYSTEMROOT", ""),
+                    "USERPROFILE": os.environ.get("USERPROFILE", ""),
+                }
+
                 # Run the subprocess with a 15-second timeout
                 subprocess.run(
                     [sys.executable, str(worker_script), str(df_path), str(code_path), str(out_path)],
                     timeout=15,
                     check=True,
                     capture_output=True,
-                    text=True
+                    text=True,
+                    env=safe_env
                 )
             except subprocess.TimeoutExpired:
                 return {

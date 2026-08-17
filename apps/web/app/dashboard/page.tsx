@@ -14,7 +14,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 
 interface Dataset { id: number; name: string; type: string; size: number; uploaded_at: string; }
 
-const actions = [{ label: "Upload dataset", href: "/upload", icon: FileUp, description: "CSV or Excel" }, { label: "Ask Char(t)ex", href: "/chat", icon: MessageSquareText, description: "Explore with AI" }];
+const actions = [{ label: "Upload dataset", href: "/dashboard?upload=1", icon: FileUp, description: "CSV or Excel" }, { label: "Ask Char(t)ex", href: "/chat", icon: MessageSquareText, description: "Explore with AI" }];
 
 export default function DashboardPage() {
   const router = useRouter();
@@ -70,7 +70,7 @@ export default function DashboardPage() {
             <h1 className="mt-2 text-3xl font-semibold tracking-tight text-white sm:text-4xl">Good to see you <span aria-hidden>👋</span></h1>
             <p className="mt-2 text-slate-400">Here’s what’s happening across your data today.</p>
           </div>
-          <Link href="/upload" className="inline-flex w-fit items-center gap-2 rounded-xl bg-cyan-300 px-4 py-2.5 text-sm font-semibold text-slate-950 transition hover:bg-cyan-200">
+          <Link href="/dashboard?upload=1" className="inline-flex w-fit items-center gap-2 rounded-xl bg-cyan-300 px-4 py-2.5 text-sm font-semibold text-slate-950 transition hover:bg-cyan-200">
             <Plus className="h-4 w-4" /> New dataset
           </Link>
         </motion.section>

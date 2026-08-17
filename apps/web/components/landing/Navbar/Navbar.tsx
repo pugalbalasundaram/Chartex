@@ -43,7 +43,7 @@ export default function Navbar() {
         </nav>
 
         <div className="flex items-center gap-4">
-          <Link href="/chat" className="group flex items-center gap-2 rounded-xl bg-white px-5 py-2.5 text-sm font-bold text-slate-950 transition hover:bg-cyan-400">
+          <Link href="/dashboard" className="group flex items-center gap-2 rounded-xl bg-white px-5 py-2.5 text-sm font-bold text-slate-950 transition hover:bg-cyan-400">
             Start Analyzing <ArrowRight className="h-4 w-4" />
           </Link>
           <Menu className="h-6 w-6 text-white lg:hidden" />

@@ -5,10 +5,10 @@ import { motion, AnimatePresence } from "framer-motion";
 import { UploadCloud, X, FileType, CheckCircle2, AlertCircle } from "lucide-react";
 import { uploadDataset } from "@/lib/api";
 import axios from "axios";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 
 export default function FloatingUpload() {
-  const [isOpen, setIsOpen] = useState(false);
+  const [isManuallyOpen, setIsManuallyOpen] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -18,6 +18,16 @@ export default function FloatingUpload() {
   
   const fileInputRef = useRef<HTMLInputElement>(null);
   const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const isOpen = isManuallyOpen || searchParams.get("upload") === "1";
+
+  const closeUpload = () => {
+    setIsManuallyOpen(false);
+    if (searchParams.get("upload") === "1") {
+      router.replace(pathname);
+    }
+  };
 
   // Reset state when closing
   useEffect(() => {
@@ -42,8 +52,15 @@ export default function FloatingUpload() {
       "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
     ];
 
-    if (!allowedExtensions.includes(file.type) && !file.name.endsWith('.csv') && !file.name.endsWith('.xlsx')) {
+    const filename = file.name.toLowerCase();
+    if (!allowedExtensions.includes(file.type) && !filename.endsWith(".csv") && !filename.endsWith(".xlsx") && !filename.endsWith(".xls")) {
       setMessage("Please upload a CSV or Excel file.");
+      setStatus("error");
+      return;
+    }
+
+    if (file.size > 10 * 1024 * 1024) {
+      setMessage("File size exceeds the 10MB limit.");
       setStatus("error");
       return;
     }
@@ -67,8 +84,8 @@ export default function FloatingUpload() {
       setStatus("success");
       
       setTimeout(() => {
-        setIsOpen(false);
-        router.push("/chat");
+        setIsManuallyOpen(false);
+        router.push(`/datasets/${response.dataset_id}`);
       }, 1500);
 
     } catch (error: unknown) {
@@ -93,7 +110,7 @@ export default function FloatingUpload() {
         whileTap={{ scale: 0.95 }}
         onHoverStart={() => setIsHovered(true)}
         onHoverEnd={() => setIsHovered(false)}
-        onClick={() => setIsOpen(true)}
+        onClick={() => setIsManuallyOpen(true)}
         className="fixed bottom-6 right-6 z-40 flex h-14 items-center justify-center gap-2 rounded-full border border-cyan-500/30 bg-slate-900/90 px-4 text-cyan-400 shadow-[0_0_30px_rgba(6,182,212,0.2)] backdrop-blur-xl transition-colors hover:bg-slate-800 md:px-6"
       >
         <UploadCloud size={24} className={isHovered ? "animate-pulse" : ""} />
@@ -108,7 +125,7 @@ export default function FloatingUpload() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            onClick={() => !uploading && setIsOpen(false)}
+            onClick={() => !uploading && closeUpload()}
             className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 p-0 backdrop-blur-sm sm:items-center sm:p-6"
           >
             <motion.div
@@ -127,7 +144,7 @@ export default function FloatingUpload() {
                   <p className="mt-1 text-sm text-slate-400">Upload a dataset to instantly generate charts and insights.</p>
                 </div>
                 <button
-                  onClick={() => !uploading && setIsOpen(false)}
+                  onClick={() => !uploading && closeUpload()}
                   disabled={uploading}
                   className="rounded-full p-2 text-slate-400 hover:bg-white/10 hover:text-white transition-colors disabled:opacity-50"
                 >
