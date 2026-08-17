@@ -1,12 +1,53 @@
 import json
 import os
+import time
+import random
 from typing import Any, Dict, List
+import logging
+
+logger = logging.getLogger(__name__)
 
 import pandas as pd
 from dotenv import load_dotenv
 from google import genai
+from google.genai.errors import APIError
 
 load_dotenv()
+
+
+def with_retry(max_retries=3):
+    def decorator(func):
+        def wrapper(*args, **kwargs):
+            retries = 0
+            while True:
+                try:
+                    return func(*args, **kwargs)
+                except APIError as e:
+                    # Get status code if available
+                    code = getattr(e, 'code', None)
+                    status = getattr(e, 'status', None)
+                    err_str = str(e)
+                    
+                    is_rate_limit = (code == 429) or ("429" in err_str)
+                    is_server_error = (code and code >= 500) or ("50" in err_str)
+                    is_quota = (code == 403) or ("quota" in err_str.lower())
+
+                    if is_quota:
+                        # Quota exceeded - don't retry, raise immediately to be caught
+                        raise ValueError("QUOTA_EXCEEDED")
+                    
+                    if is_rate_limit or is_server_error:
+                        if retries >= max_retries:
+                            raise ValueError("RATE_LIMITED" if is_rate_limit else "SERVICE_UNAVAILABLE")
+                        sleep_time = (1.5 ** retries) + random.uniform(0.1, 0.5)
+                        time.sleep(sleep_time)
+                        retries += 1
+                    else:
+                        raise e
+                except Exception as e:
+                    raise e
+        return wrapper
+    return decorator
 
 
 class LLMService:
@@ -95,6 +136,8 @@ Rules
 5. Use the provided conversation history to understand context for follow-up questions.
 6. answer must always be present.
 """
+
+    @with_retry(max_retries=3)
     def ask(
         self,
         dataframe: pd.DataFrame,
@@ -118,7 +161,6 @@ Rules
                     prompt,
                 ],
             )
-            # ... (rest of the logic remains the same, need to be careful with indentation and tool use)
 
             text = ""
 
@@ -180,16 +222,28 @@ Rules
                     ],
                 }
 
+        except ValueError as ve:
+            reason = str(ve)
+            if reason == "QUOTA_EXCEEDED":
+                answer = "⚠️ Charex has temporarily reached its AI usage limit. Please try again later."
+            elif reason == "RATE_LIMITED":
+                answer = "⚠️ Charex is receiving too many requests right now. Please try again in a moment."
+            else:
+                answer = "⚠️ The AI analysis service is temporarily unavailable. Please try again."
+                
+            return {
+                "answer": answer,
+                "chart_type": None,
+                "chart_data": None,
+                "table_data": None,
+                "suggestions": ["Try again"],
+            }
         except Exception as e:
-
-            print("\n========== GEMINI ERROR ==========")
-            print(e)
-            print("==================================\n")
+            logger.error(f"Gemini API Error: {e}", exc_info=True)
 
             return {
                 "answer": (
-                    "⚠️ Charex AI is temporarily unavailable because "
-                    "Gemini is experiencing high demand. "
+                    "⚠️ Charex AI is temporarily unavailable. "
                     "Please try again shortly."
                 ),
 
@@ -206,6 +260,7 @@ Rules
                 ],
             }
 
+    @with_retry(max_retries=3)
     def ask_stream(
         self,
         dataframe: pd.DataFrame,
@@ -234,9 +289,38 @@ Rules
                 if chunk.text:
                     yield chunk.text
 
+        except ValueError as ve:
+            reason = str(ve)
+            if reason == "QUOTA_EXCEEDED":
+                yield "⚠️ Charex has temporarily reached its AI usage limit. Please try again later."
+            elif reason == "RATE_LIMITED":
+                yield "⚠️ Charex is receiving too many requests right now. Please try again in a moment."
+            else:
+                yield "⚠️ The AI analysis service is temporarily unavailable. Please try again."
         except Exception as e:
-
-            print("\n========== GEMINI ERROR ==========")
-            print(e)
-            print("==================================\n")
+            logger.error(f"Gemini API Error: {e}", exc_info=True)
             yield "⚠️ Charex AI is temporarily unavailable."
+
+    @with_retry(max_retries=3)
+    def generate(self, system_instruction: str, prompt: str) -> str:
+        try:
+            response = self.client.models.generate_content(
+                model=self.model,
+                contents=[
+                    f"System Instruction:\n{system_instruction}",
+                    prompt
+                ],
+            )
+            text = ""
+            if hasattr(response, "text") and response.text:
+                text = response.text.strip()
+            else:
+                text = str(response)
+            return text
+        except ValueError as ve:
+            # We don't want the agent service to just output the raw error directly into the sandbox. 
+            # We raise so it can be handled by AgentService
+            raise RuntimeError(str(ve))
+        except Exception as e:
+            logger.error(f"Gemini Generation Error: {e}", exc_info=True)
+            raise RuntimeError(str(e))

@@ -2,22 +2,22 @@ from pathlib import Path
 import shutil
 from uuid import uuid4
 
-from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
+from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, BackgroundTasks
 from sqlalchemy.orm import Session
 
 from app.database.database import get_db
 from app.models.dataset import Dataset
 from app.services.dataset_service import DatasetService
-from app.core.auth import get_current_user
-from app.models.user import User
+from app.services.storage_service import StorageService
+from app.core.session import get_anonymous_session
 
 router = APIRouter(
     prefix="/upload",
     tags=["Upload"],
 )
 
-UPLOAD_DIR = Path("uploads")
-UPLOAD_DIR.mkdir(exist_ok=True)
+# Storage Service instance
+storage_service = StorageService()
 
 ALLOWED_EXTENSIONS = {
     ".csv",
@@ -29,9 +29,10 @@ MAX_FILE_SIZE = 10 * 1024 * 1024  # 10MB
 
 @router.post("/")
 async def upload_dataset(
+    background_tasks: BackgroundTasks,
     file: UploadFile = File(...),
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    session_id: str = Depends(get_anonymous_session),
 ):
     extension = Path(file.filename).suffix.lower()
 
@@ -53,30 +54,35 @@ async def upload_dataset(
         )
 
     stored_filename = f"{uuid4()}{extension}"
-    filepath = UPLOAD_DIR / stored_filename
-
-    with filepath.open("wb") as buffer:
-        shutil.copyfileobj(file.file, buffer)
+    
+    storage_service.save_upload_file(file, stored_filename)
 
     dataset = Dataset(
         original_filename=file.filename,
         stored_filename=stored_filename,
         file_type=extension.replace(".", ""),
         file_size=file_size,
-        owner_id=current_user.id,
+        session_id=session_id,
+        analysis_status="PENDING",
     )
 
     db.add(dataset)
     db.commit()
     db.refresh(dataset)
 
-    analysis = DatasetService.analyze_dataset(str(filepath))
+    # Trigger background analysis (background worker will download from storage if needed)
+    # We pass the stored_filename instead of a local filepath
+    background_tasks.add_task(
+        DatasetService.generate_and_cache_analytics,
+        dataset.id,
+        stored_filename,
+        db
+    )
 
     return {
-        "message": "File uploaded successfully",
+        "message": "File uploaded successfully, analysis in progress",
         "dataset_id": dataset.id,
         "original_filename": dataset.original_filename,
         "stored_filename": dataset.stored_filename,
         "uploaded_at": dataset.uploaded_at,
-        "analysis": analysis,
     }

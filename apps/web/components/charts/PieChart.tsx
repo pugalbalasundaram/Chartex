@@ -49,10 +49,10 @@ export default function PieChart({
   );
 
   return (
-    <div className="mt-6 rounded-2xl border border-slate-700 bg-slate-900 p-6">
+    <div className="mt-6 rounded-3xl border border-white/5 bg-surface/50 p-6 shadow-2xl shadow-black/10 backdrop-blur-3xl">
 
       <div className="mb-6">
-        <h3 className="text-xl font-semibold text-white">
+        <h3 className="text-xl font-bold text-white tracking-tight">
           AI Generated Pie Chart
         </h3>
 
@@ -72,7 +72,28 @@ export default function PieChart({
             dataKey="value"
             nameKey="name"
             outerRadius={110}
-            label
+            innerRadius={60}
+            labelLine={false}
+            label={(props: import("recharts").PieLabelRenderProps) => {
+              const cx = Number(props.cx) || 0;
+              const cy = Number(props.cy) || 0;
+              const midAngle = Number(props.midAngle) || 0;
+              const innerRadius = Number(props.innerRadius) || 0;
+              const outerRadius = Number(props.outerRadius) || 0;
+              const percent = Number(props.percent) || 0;
+              const radius = innerRadius + (outerRadius - innerRadius) * 0.5;
+              const x = cx + radius * Math.cos(-midAngle * Math.PI / 180);
+              const y = cy + radius * Math.sin(-midAngle * Math.PI / 180);
+              if (percent < 0.05) return null;
+              return (
+                <text x={x} y={y} fill="white" textAnchor="middle" dominantBaseline="central" className="text-xs font-bold drop-shadow-md">
+                  {`${(percent * 100).toFixed(0)}%`}
+                </text>
+              );
+            }}
+            stroke="rgba(0,0,0,0.2)"
+            strokeWidth={2}
+            animationDuration={1500}
           >
 
             {data.map((_, index) => (
@@ -90,11 +111,14 @@ export default function PieChart({
 
           <Tooltip
             contentStyle={{
-              background: "#0F172A",
-              border: "1px solid #334155",
-              borderRadius: "12px",
+              background: "rgba(11, 18, 30, 0.7)",
+              backdropFilter: "blur(16px)",
+              border: "1px solid rgba(255,255,255,0.05)",
+              borderRadius: "16px",
               color: "#ffffff",
+              boxShadow: "0 20px 40px -10px rgba(0,0,0,0.3)"
             }}
+            itemStyle={{ color: "#ffffff" }}
           />
 
         </RechartsPieChart>

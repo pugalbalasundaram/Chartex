@@ -37,10 +37,10 @@ export default function AreaRevenueChart({
   );
 
   return (
-    <div className="mt-6 rounded-2xl border border-slate-700 bg-slate-900 p-6">
+    <div className="mt-6 rounded-3xl border border-white/5 bg-surface/50 p-6 shadow-2xl shadow-black/10 backdrop-blur-3xl">
 
       <div className="mb-6">
-        <h3 className="text-xl font-semibold text-white">
+        <h3 className="text-xl font-bold text-white tracking-tight">
           AI Generated Area Chart
         </h3>
 
@@ -65,13 +65,13 @@ export default function AreaRevenueChart({
             >
               <stop
                 offset="5%"
-                stopColor="#06B6D4"
-                stopOpacity={0.5}
+                stopColor="#22d3ee"
+                stopOpacity={0.6}
               />
 
               <stop
                 offset="95%"
-                stopColor="#06B6D4"
+                stopColor="#22d3ee"
                 stopOpacity={0}
               />
             </linearGradient>
@@ -85,31 +85,39 @@ export default function AreaRevenueChart({
             }}
             axisLine={false}
             tickLine={false}
+            tickMargin={12}
           />
 
           <YAxis
             tick={{
               fill: "#94A3B8",
+              fontSize: 12,
             }}
             axisLine={false}
             tickLine={false}
+            tickMargin={12}
           />
 
           <Tooltip
             contentStyle={{
-              background: "#0F172A",
-              border: "1px solid #334155",
-              borderRadius: "12px",
+              background: "rgba(11, 18, 30, 0.7)",
+              backdropFilter: "blur(16px)",
+              border: "1px solid rgba(255,255,255,0.05)",
+              borderRadius: "16px",
               color: "#ffffff",
+              boxShadow: "0 20px 40px -10px rgba(0,0,0,0.3)"
             }}
+            itemStyle={{ color: "#22d3ee" }}
           />
 
           <Area
             type="monotone"
             dataKey="value"
-            stroke="#06B6D4"
+            stroke="#22d3ee"
             strokeWidth={3}
             fill="url(#areaGradient)"
+            animationDuration={1500}
+            animationEasing="ease-in-out"
           />
 
         </AreaChart>

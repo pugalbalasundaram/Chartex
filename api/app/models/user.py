@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String
+from sqlalchemy import Column, Integer, String, Boolean
 from sqlalchemy.orm import relationship
 
 from app.database.database import Base
@@ -18,6 +18,12 @@ class User(Base):
         nullable=False,
     )
 
+    email_verified = Column(
+        Boolean,
+        default=False,
+        nullable=False,
+    )
+
     hashed_password = Column(
         String,
         nullable=False,
@@ -26,5 +32,17 @@ class User(Base):
     datasets = relationship(
         "Dataset",
         back_populates="owner",
+        cascade="all, delete-orphan",
+    )
+
+    refresh_tokens = relationship(
+        "RefreshToken",
+        back_populates="user",
+        cascade="all, delete-orphan",
+    )
+
+    verification_otps = relationship(
+        "VerificationOTP",
+        back_populates="user",
         cascade="all, delete-orphan",
     )

@@ -39,32 +39,33 @@ export default function InsightsPanel({
     title: string;
     description: string;
     icon: React.ReactNode;
-    color: string;
+    style: string;
+    iconColor: string;
   }[] = [];
 
   if (summary.quality_score >= 90) {
     insights.push({
       title: "Excellent Data Quality",
-      description:
-        "Your dataset is clean and ready for advanced analytics or machine learning.",
+      description: "Your dataset is clean and ready for advanced analytics or machine learning.",
       icon: <CheckCircle2 size={20} />,
-      color: "border-green-500 bg-green-50",
+      style: "border-emerald-500/20 bg-emerald-500/[0.03]",
+      iconColor: "text-emerald-400",
     });
   } else if (summary.quality_score >= 70) {
     insights.push({
       title: "Good Dataset",
-      description:
-        "Minor preprocessing may improve model performance.",
+      description: "Minor preprocessing may improve model performance.",
       icon: <BarChart3 size={20} />,
-      color: "border-yellow-500 bg-yellow-50",
+      style: "border-amber-500/20 bg-amber-500/[0.03]",
+      iconColor: "text-amber-400",
     });
   } else {
     insights.push({
       title: "Data Cleaning Recommended",
-      description:
-        "Significant preprocessing is recommended before analysis.",
+      description: "Significant preprocessing is recommended before analysis.",
       icon: <AlertCircle size={20} />,
-      color: "border-red-500 bg-red-50",
+      style: "border-rose-500/20 bg-rose-500/[0.03]",
+      iconColor: "text-rose-400",
     });
   }
 
@@ -73,7 +74,8 @@ export default function InsightsPanel({
       title: "Missing Values Detected",
       description: `${missing.total_missing} missing values were found. Consider imputation or removing incomplete records.`,
       icon: <FileWarning size={20} />,
-      color: "border-orange-500 bg-orange-50",
+      style: "border-orange-500/20 bg-orange-500/[0.03]",
+      iconColor: "text-orange-400",
     });
   }
 
@@ -82,112 +84,61 @@ export default function InsightsPanel({
       title: "Duplicate Records Found",
       description: `${duplicates.duplicate_rows} duplicate rows detected. Removing them can improve analysis accuracy.`,
       icon: <Database size={20} />,
-      color: "border-purple-500 bg-purple-50",
+      style: "border-purple-500/20 bg-purple-500/[0.03]",
+      iconColor: "text-purple-400",
     });
   }
 
   insights.push({
     title: "Next Recommendation",
-    description:
-      "Explore correlations, distributions, and feature engineering before training ML models.",
+    description: "Explore correlations, distributions, and feature engineering before training ML models.",
     icon: <Lightbulb size={20} />,
-    color: "border-blue-500 bg-blue-50",
+    style: "border-cyan-500/20 bg-cyan-500/[0.03]",
+    iconColor: "text-cyan-400",
   });
 
   return (
-    <div className="rounded-xl border bg-white p-6 shadow">
-
-      <div className="mb-6">
-        <h2 className="text-2xl font-bold">
-          AI Insights
-        </h2>
-
-        <p className="mt-1 text-sm text-gray-500">
-          Automatically generated recommendations based on your dataset.
-        </p>
+    <div className="rounded-3xl border border-white/[0.05] bg-white/[0.02] p-8">
+      <div className="mb-8">
+        <h2 className="text-xl font-bold text-white tracking-tight">AI Insights</h2>
+        <p className="mt-1 text-sm text-slate-400">Automatically generated recommendations based on your dataset.</p>
       </div>
 
       <div className="space-y-4">
-
         {insights.map((item, index) => (
-          <div
-            key={index}
-            className={`rounded-xl border-l-4 p-4 ${item.color}`}
-          >
-            <div className="flex gap-3">
-
-              <div className="mt-1">
-                {item.icon}
-              </div>
-
+          <div key={index} className={`rounded-2xl border p-5 ${item.style}`}>
+            <div className="flex gap-4">
+              <div className={`mt-1 ${item.iconColor}`}>{item.icon}</div>
               <div>
-                <h3 className="font-semibold text-lg">
-                  {item.title}
-                </h3>
-
-                <p className="mt-1 text-sm text-gray-700">
-                  {item.description}
-                </p>
+                <h3 className="font-bold text-white">{item.title}</h3>
+                <p className="mt-1 text-sm text-slate-400">{item.description}</p>
               </div>
-
             </div>
           </div>
         ))}
-
       </div>
 
-      <div className="mt-8 rounded-xl bg-gray-50 p-5">
-
-        <h3 className="font-semibold text-lg">
-          Dataset Overview
-        </h3>
-
-        <div className="mt-4 grid gap-4 md:grid-cols-4">
-
+      <div className="mt-10 rounded-2xl border border-white/[0.05] bg-white/[0.02] p-6">
+        <h3 className="font-bold text-white tracking-tight">Dataset Overview</h3>
+        <div className="mt-6 grid grid-cols-2 gap-6 md:grid-cols-4">
           <div>
-            <p className="text-sm text-gray-500">
-              Rows
-            </p>
-
-            <p className="text-2xl font-bold">
-              {summary.rows}
-            </p>
+            <p className="text-sm font-semibold text-slate-400">Rows</p>
+            <p className="mt-1 text-2xl font-bold text-white">{summary.rows}</p>
           </div>
-
           <div>
-            <p className="text-sm text-gray-500">
-              Columns
-            </p>
-
-            <p className="text-2xl font-bold">
-              {summary.columns}
-            </p>
+            <p className="text-sm font-semibold text-slate-400">Columns</p>
+            <p className="mt-1 text-2xl font-bold text-white">{summary.columns}</p>
           </div>
-
           <div>
-            <p className="text-sm text-gray-500">
-              Quality Score
-            </p>
-
-            <p className="text-2xl font-bold">
-              {summary.quality_score}%
-            </p>
+            <p className="text-sm font-semibold text-slate-400">Quality Score</p>
+            <p className="mt-1 text-2xl font-bold text-white">{summary.quality_score}%</p>
           </div>
-
           <div>
-            <p className="text-sm text-gray-500">
-              Memory Usage
-            </p>
-
-            <p className="text-2xl font-bold">
-              {summary.memory_usage}
-            </p>
+            <p className="text-sm font-semibold text-slate-400">Memory Usage</p>
+            <p className="mt-1 text-2xl font-bold text-white">{summary.memory_usage}</p>
           </div>
-
         </div>
-
       </div>
-
     </div>
   );
 }

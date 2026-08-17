@@ -21,35 +21,38 @@ export default function PricingCard({
   return (
     <motion.div
       whileHover={{ y: -8 }}
-      transition={{ duration: 0.25 }}
-      className={`relative rounded-3xl border p-8 ${
+      transition={{ duration: 0.3 }}
+      className={`relative rounded-3xl border p-8 backdrop-blur-2xl transition-all ${
         popular
-          ? "border-cyan-400 bg-slate-900"
-          : "border-white/10 bg-slate-900/70"
+          ? "border-cyan-400/50 bg-cyan-400/[0.03]"
+          : "border-white/[0.05] bg-white/[0.02] hover:border-white/[0.1]"
       }`}
     >
       {popular && (
-        <span className="absolute right-6 top-6 rounded-full bg-cyan-500 px-3 py-1 text-xs font-semibold text-white">
+        <span className="absolute -top-3 right-8 rounded-full bg-cyan-400 px-4 py-1 text-[10px] font-bold uppercase tracking-widest text-slate-950">
           Most Popular
         </span>
       )}
 
-      <h3 className="text-2xl font-bold text-white">{name}</h3>
+      <h3 className="text-xl font-bold text-white tracking-tight">{name}</h3>
 
-      <p className="mt-4 text-5xl font-bold text-cyan-400">{price}</p>
+      <div className="mt-6 flex items-baseline gap-1">
+        <span className="text-5xl font-extrabold tracking-tighter text-white">{price}</span>
+        <span className="text-sm text-slate-500">/mo</span>
+      </div>
 
-      <p className="mt-3 text-slate-400">{description}</p>
+      <p className="mt-4 text-sm text-slate-400">{description}</p>
 
       <ul className="mt-8 space-y-4">
         {features.map((feature) => (
-          <li key={feature} className="flex items-center gap-3 text-slate-300">
+          <li key={feature} className="flex items-center gap-3 text-sm text-slate-300">
             <Check className="h-5 w-5 text-cyan-400" />
             {feature}
           </li>
         ))}
       </ul>
 
-      <button className="mt-8 w-full rounded-xl bg-cyan-500 py-3 font-semibold text-white transition hover:bg-cyan-600">
+      <button className={`mt-10 w-full rounded-xl py-3.5 font-bold transition ${popular ? "bg-cyan-400 text-slate-950 hover:bg-cyan-300" : "bg-white/[0.05] text-white hover:bg-white/[0.1]"}`}>
         Get Started
       </button>
     </motion.div>

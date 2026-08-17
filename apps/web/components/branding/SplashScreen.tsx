@@ -11,8 +11,10 @@ export default function SplashScreen({ onComplete }: { onComplete: () => void })
     // Check if splash already seen
     const seen = localStorage.getItem("chartex_intro_seen");
     if (seen) {
-      onComplete();
-      setVisible(false);
+      setTimeout(() => {
+        onComplete();
+        setVisible(false);
+      }, 0);
       return;
     }
 

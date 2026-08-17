@@ -1,41 +1,5 @@
 import api from "./axios";
 
-export interface RegisterData {
-  username: string;
-  email: string;
-  password: string;
-}
-
-export const registerUser = async (data: RegisterData) => {
-  const response = await api.post("/auth/signup", data);
-  return response.data;
-};
-
-export interface LoginData {
-  email: string;
-  password: string;
-}
-export const loginUser = async (data: LoginData) => {
-  const response = await api.post("/auth/login", data);
-  
-  // Store token in cookie
-  if (response.data.access_token) {
-    document.cookie = `access_token=${response.data.access_token}; path=/; max-age=3600; SameSite=Strict`;
-  }
-  
-  return response.data;
-};
-
-export const getCurrentUser = async () => {
-  const response = await api.get("/auth/me");
-  return response.data;
-};
-
-export const logoutUser = () => {
-  // Clear token cookie on client-side if needed or just redirect
-  document.cookie = "access_token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
-};
-
 export const uploadDataset = async (file: File) => {
   const formData = new FormData();
   formData.append("file", file);
@@ -64,9 +28,28 @@ export async function getDatasetSummary(id: number) {
   return response.data;
 }
 
+export async function getDatasetProfile(id: number) {
+  const response = await api.get(`/datasets/${id}/profile`);
+  return response.data;
+}
+
+export async function getDatasetAnalytics(id: number) {
+  const response = await api.get(`/datasets/${id}/analytics`);
+  if (response.status === 202) {
+    return { status: "PENDING" };
+  }
+  return { status: "COMPLETED", data: response.data };
+}
+
+export async function getDatasetData(id: number) {
+  const response = await api.get(`/datasets/${id}/data`);
+  return response.data;
+}
+
 export interface ChatRequest {
   dataset_id: number;
   message: string;
+  history?: unknown[];
 }
 
 export interface ChatResponse {
@@ -92,23 +75,19 @@ export async function sendChat(data: ChatRequest) {
 export async function sendChatStream(
   data: ChatRequest,
   onChunk: (chunk: string) => void,
+  onPayload: (payload: Record<string, unknown>) => void,
   onDone: (error?: string) => void,
   signal: AbortSignal,
 ) {
-  const token = document.cookie
-    .split("; ")
-    .find((row) => row.startsWith("access_token="))
-    ?.split("=")[1];
-
   try {
-    const response = await fetch("http://127.0.0.1:8000/chat/stream", {
+    const response = await fetch((process.env.NEXT_PUBLIC_API_URL || "http://localhost:8001") + "/chat/stream", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
       },
       body: JSON.stringify(data),
       signal,
+      credentials: "include" // VERY IMPORTANT: Sends cookies (including charex_anon_session)
     });
 
     if (!response.body) {
@@ -134,17 +113,23 @@ export async function sendChatStream(
             onDone();
             return;
           }
+          if (dataStr === "[HEARTBEAT]") {
+            continue;
+          }
           try {
             const parsed = JSON.parse(dataStr);
-            onChunk(parsed.content);
+            if (parsed.content !== undefined && parsed.content !== null) {
+              onChunk(parsed.content);
+            }
+            onPayload(parsed);
           } catch (e) {
             console.error("Error parsing SSE chunk:", e);
           }
         }
       }
     }
-  } catch (error: any) {
-    if (error.name === "AbortError") {
+  } catch (error: unknown) {
+    if (error instanceof Error && error.name === "AbortError") {
       console.log("Chat stream aborted");
       onDone("Stream aborted by user.");
     } else {
@@ -152,4 +137,37 @@ export async function sendChatStream(
       onDone("Stream interrupted. Please try again.");
     }
   }
+}
+
+export interface DatasetProfile {
+  row_count: number;
+  column_count: number;
+  quality_score: number;
+  readiness: string;
+  columns: Array<{
+    name: string;
+    semantic_type: string;
+    likely_identifier?: boolean;
+    dtype: string;
+    unique_count: number;
+    missing_percentage: number;
+    numeric_stats?: {
+      min?: number;
+      max?: number;
+      mean?: number;
+      median?: number;
+      zero_count: number;
+      negative_count: number;
+    };
+    top_values?: Array<{ value: string; count: number }>;
+  }>;
+  quality_issues: Array<{ severity: string; column?: string; message: string }>;
+  duplicate_summary: { duplicate_rows: number };
+  outliers: Array<{ column: string; outlier_count: number; outlier_percentage: number }>;
+  correlations: Array<{ column_a: string; column_b: string; correlation: number; strength: string }>;
+  recommendations: string[];
+  numeric_columns: string[];
+  categorical_columns: string[];
+  datetime_columns: string[];
+  text_columns: string[];
 }

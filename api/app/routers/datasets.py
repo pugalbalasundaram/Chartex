@@ -1,15 +1,15 @@
 from pathlib import Path
 import os
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks
 from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
 
 from app.database.database import get_db
 from app.models.dataset import Dataset
 from app.services.dataset_service import DatasetService
-from app.core.auth import get_current_user
-from app.models.user import User
+from app.services.dataset_profiler import DatasetProfiler
+from app.core.session import get_anonymous_session
 
 router = APIRouter(
     prefix="/datasets",
@@ -20,10 +20,10 @@ UPLOAD_DIR = Path("uploads")
 
 
 @router.get("/")
-def get_datasets(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+def get_datasets(db: Session = Depends(get_db), session_id: str = Depends(get_anonymous_session)):
     datasets = (
         db.query(Dataset)
-        .filter(Dataset.owner_id == current_user.id)
+        .filter(Dataset.session_id == session_id)
         .order_by(Dataset.id.desc())
         .all()
     )
@@ -44,11 +44,11 @@ def get_datasets(db: Session = Depends(get_db), current_user: User = Depends(get
 def get_dataset(
     dataset_id: int,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    session_id: str = Depends(get_anonymous_session),
 ):
     dataset = (
         db.query(Dataset)
-        .filter(Dataset.id == dataset_id, Dataset.owner_id == current_user.id)
+        .filter(Dataset.id == dataset_id, Dataset.session_id == session_id)
         .first()
     )
 
@@ -72,11 +72,11 @@ def get_dataset(
 def delete_dataset(
     dataset_id: int,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    session_id: str = Depends(get_anonymous_session),
 ):
     dataset = (
         db.query(Dataset)
-        .filter(Dataset.id == dataset_id, Dataset.owner_id == current_user.id)
+        .filter(Dataset.id == dataset_id, Dataset.session_id == session_id)
         .first()
     )
 
@@ -86,10 +86,12 @@ def delete_dataset(
             detail="Dataset not found",
         )
 
-    filepath = UPLOAD_DIR / dataset.stored_filename
-
-    if filepath.exists():
-        os.remove(filepath)
+    from app.services.storage_service import StorageService
+    storage_service = StorageService()
+    try:
+        storage_service.delete_file(dataset.stored_filename)
+    except Exception:
+        pass
 
     db.delete(dataset)
     db.commit()
@@ -101,11 +103,11 @@ def delete_dataset(
 def download_dataset(
     dataset_id: int,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    session_id: str = Depends(get_anonymous_session),
 ):
     dataset = (
         db.query(Dataset)
-        .filter(Dataset.id == dataset_id, Dataset.owner_id == current_user.id)
+        .filter(Dataset.id == dataset_id, Dataset.session_id == session_id)
         .first()
     )
 
@@ -115,16 +117,19 @@ def download_dataset(
             detail="Dataset not found",
         )
 
-    filepath = UPLOAD_DIR / dataset.stored_filename
-
-    if not filepath.exists():
+    from app.services.storage_service import StorageService
+    storage_service = StorageService()
+    
+    try:
+        local_path = storage_service.get_file_path_for_reading(dataset.stored_filename)
+    except FileNotFoundError:
         raise HTTPException(
             status_code=404,
-            detail="Dataset file not found on server",
+            detail="Dataset file not found on remote storage",
         )
 
     return FileResponse(
-        path=filepath,
+        path=local_path,
         filename=dataset.original_filename,
         media_type="application/octet-stream",
     )
@@ -134,11 +139,11 @@ def download_dataset(
 def preview_dataset(
     dataset_id: int,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    session_id: str = Depends(get_anonymous_session),
 ):
     dataset = (
         db.query(Dataset)
-        .filter(Dataset.id == dataset_id, Dataset.owner_id == current_user.id)
+        .filter(Dataset.id == dataset_id, Dataset.session_id == session_id)
         .first()
     )
 
@@ -148,22 +153,50 @@ def preview_dataset(
             detail="Dataset not found",
         )
 
-    filepath = UPLOAD_DIR / dataset.stored_filename
 
     return DatasetService.analyze_dataset(
-        str(filepath)
+        dataset.stored_filename
     )
+
+
+@router.get("/{dataset_id}/profile")
+def profile_dataset(
+    dataset_id: int,
+    db: Session = Depends(get_db),
+    session_id: str = Depends(get_anonymous_session),
+):
+    dataset = (
+        db.query(Dataset)
+        .filter(Dataset.id == dataset_id, Dataset.session_id == session_id)
+        .first()
+    )
+
+    if not dataset:
+        raise HTTPException(
+            status_code=404,
+            detail="Dataset not found",
+        )
+
+    try:
+        df = DatasetService._load_dataset(dataset.stored_filename)
+        profile_data = DatasetProfiler.profile(df)
+        return profile_data
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to profile dataset: {str(e)}",
+        )
 
 
 @router.get("/{dataset_id}/summary")
 def dataset_summary(
     dataset_id: int,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    session_id: str = Depends(get_anonymous_session),
 ):
     dataset = (
         db.query(Dataset)
-        .filter(Dataset.id == dataset_id, Dataset.owner_id == current_user.id)
+        .filter(Dataset.id == dataset_id, Dataset.session_id == session_id)
         .first()
     )
 
@@ -173,10 +206,90 @@ def dataset_summary(
             detail="Dataset not found",
         )
 
-    filepath = UPLOAD_DIR / dataset.stored_filename
 
     summary = DatasetService.dataset_summary(
-        str(filepath)
+        dataset.stored_filename
     )
 
     return summary
+
+@router.get("/{dataset_id}/analytics")
+def get_dataset_analytics(
+    dataset_id: int,
+    background_tasks: BackgroundTasks,
+    db: Session = Depends(get_db),
+    session_id: str = Depends(get_anonymous_session),
+):
+    dataset = (
+        db.query(Dataset)
+        .filter(Dataset.id == dataset_id, Dataset.session_id == session_id)
+        .first()
+    )
+
+    if not dataset:
+        raise HTTPException(
+            status_code=404,
+            detail="Dataset not found",
+        )
+
+    if dataset.analysis_status == "COMPLETED" and dataset.analysis_cache:
+        return dataset.analysis_cache
+
+    if dataset.analysis_status == "FAILED":
+        raise HTTPException(
+            status_code=500,
+            detail="Analytics generation failed for this dataset.",
+        )
+
+    # If it's PENDING, check if we need to trigger it.
+    # To be safe, if it's been pending for a while, we can trigger it again, but
+    # it's simpler to just always trigger it if we hit this endpoint and it's not COMPLETED.
+    # But that might cause duplicate runs.
+    # Given we just added this feature, let's just trigger it for any dataset that doesn't have it.
+
+    if dataset.analysis_status == "PENDING" and not dataset.analysis_cache:
+        # Trigger it in background just in case it wasn't running
+        background_tasks.add_task(
+            DatasetService.generate_and_cache_analytics,
+            dataset.id,
+            dataset.stored_filename,
+            db
+        )
+
+    from fastapi.responses import JSONResponse
+    return JSONResponse(
+        status_code=202,
+        content={"message": "Analysis is in progress", "status": "PENDING"}
+    )
+
+@router.get("/{dataset_id}/data")
+def get_dataset_data(
+    dataset_id: int,
+    db: Session = Depends(get_db),
+    session_id: str = Depends(get_anonymous_session),
+    limit: int = 1000,
+):
+    dataset = (
+        db.query(Dataset)
+        .filter(Dataset.id == dataset_id, Dataset.session_id == session_id)
+        .first()
+    )
+
+    if not dataset:
+        raise HTTPException(
+            status_code=404,
+            detail="Dataset not found",
+        )
+
+    try:
+        df = DatasetService._load_dataset(dataset.stored_filename)
+        
+        # Replace infinity and NaN with None (null in JSON)
+        import numpy as np
+        df = df.replace([np.inf, -np.inf], None)
+        df = df.where(df.notnull(), None)
+        
+        data = df.head(limit).to_dict(orient="records")
+        return {"data": data}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))

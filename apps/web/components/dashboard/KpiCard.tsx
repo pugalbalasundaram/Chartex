@@ -8,12 +8,12 @@ export default function KpiCard({
   value,
 }: KpiCardProps) {
   return (
-    <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
-      <p className="text-sm text-gray-500">
+    <div className="rounded-3xl border border-white/[0.05] bg-white/[0.02] p-8">
+      <p className="text-sm font-semibold text-slate-400">
         {title}
       </p>
 
-      <h2 className="mt-2 text-3xl font-bold text-gray-900">
+      <h2 className="mt-3 text-3xl font-bold tracking-tight text-white">
         {value}
       </h2>
     </div>

@@ -18,27 +18,27 @@ export default function KPICard({
 }: KPICardProps) {
   return (
     <motion.div
-      whileHover={{ y: -6, scale: 1.02 }}
-      transition={{ duration: 0.25 }}
-      className="rounded-2xl border border-white/10 bg-slate-900 p-6"
+      whileHover={{ y: -4, scale: 1.01 }}
+      transition={{ duration: 0.3 }}
+      className="rounded-3xl border border-white/[0.05] bg-white/[0.02] p-8"
     >
       <div className="flex items-center justify-between">
         <div>
-          <p className="text-sm text-slate-400">
+          <p className="text-sm font-semibold text-slate-400">
             {title}
           </p>
 
-          <h3 className="mt-2 text-3xl font-bold text-white">
+          <h3 className="mt-3 text-3xl font-bold tracking-tight text-white">
             {value}
           </h3>
 
-          <p className="mt-2 text-sm text-emerald-400">
+          <p className="mt-2 text-sm font-bold text-emerald-400">
             {change}
           </p>
         </div>
 
-        <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-cyan-500/10 text-cyan-400">
-          <Icon size={28} />
+        <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-cyan-400/10 text-cyan-400">
+          <Icon size={24} />
         </div>
       </div>
     </motion.div>

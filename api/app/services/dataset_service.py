@@ -1,8 +1,11 @@
 from pathlib import Path
+import logging
 from typing import Any, Dict, List
 
 import numpy as np
 import pandas as pd
+
+logger = logging.getLogger(__name__)
 
 
 class DatasetService:
@@ -25,14 +28,18 @@ class DatasetService:
 
     @staticmethod
     def _load_dataset(
-        file_path: str,
+        stored_filename: str,
     ) -> pd.DataFrame:
 
-        path = Path(file_path)
-
-        if not path.exists():
+        from app.services.storage_service import StorageService
+        storage_service = StorageService()
+        
+        try:
+            local_file_path = storage_service.get_file_path_for_reading(stored_filename)
+            path = Path(local_file_path)
+        except FileNotFoundError:
             raise FileNotFoundError(
-                f"Dataset not found: {file_path}"
+                f"Dataset not found: {stored_filename}"
             )
 
         suffix = path.suffix.lower()
@@ -465,11 +472,11 @@ class DatasetService:
     @classmethod
     def dataset_summary(
         cls,
-        file_path: str,
+        stored_filename: str,
     ) -> Dict[str, Any]:
 
         dataframe = cls._load_dataset(
-            file_path
+            stored_filename
         )
 
         dataframe = cls._clean_dataset(
@@ -514,11 +521,11 @@ class DatasetService:
     @classmethod
     def analyze_dataset(
         cls,
-        file_path: str,
+        stored_filename: str,
     ) -> Dict[str, Any]:
 
         dataframe = cls._load_dataset(
-            file_path
+            stored_filename
         )
 
         dataframe = cls._clean_dataset(
@@ -616,3 +623,64 @@ class DatasetService:
                 dataframe
             ),
         }
+
+    # ==========================================================
+    # ASYNC CACHE GENERATION
+    # ==========================================================
+
+    @classmethod
+    def generate_and_cache_analytics(
+        cls,
+        dataset_id: int,
+        stored_filename: str,
+        db,  # Session
+    ):
+        from app.models.dataset import Dataset
+        from app.services.llm_service import LLMService
+
+        dataset = db.query(Dataset).filter(Dataset.id == dataset_id).first()
+        if not dataset:
+            return
+
+        try:
+            # Generate base analytics
+            analysis = cls.analyze_dataset(stored_filename)
+
+            # Generate AI Insights using LLM
+            llm = LLMService()
+            dataframe = cls._load_dataset(stored_filename)
+            dataframe = cls._clean_dataset(dataframe)
+
+            prompt = (
+                "Please provide an analytical summary of this dataset. "
+                "You must respond EXACTLY in the following format, without any extra text or markdown code blocks:\n\n"
+                "I analyzed your dataset.\n\n"
+                "Here are three unusual findings.\n"
+                "[finding 1]\n"
+                "[finding 2]\n"
+                "[finding 3]\n\n"
+                "Would you like me to:"
+                "\n\n"
+                "Also provide exactly 5 suggested actions a user could take (e.g. Build a dashboard, Forecast sales, Detect anomalies). "
+                "Return them in the 'suggestions' array."
+            )
+
+            ai_response = llm.ask(
+                dataframe=dataframe,
+                statistics=analysis["statistics"],
+                data_types=analysis["data_types"],
+                question=prompt,
+            )
+
+            analysis["ai_insights"] = ai_response.get("answer", "")
+            analysis["suggested_questions"] = ai_response.get("suggestions", [])
+
+            dataset.analysis_cache = analysis
+            dataset.analysis_status = "COMPLETED"
+            db.commit()
+
+        except Exception as e:
+            logger.error(f"Error generating analytics for dataset {dataset_id}: {e}", exc_info=True)
+            db.rollback()
+            dataset.analysis_status = "FAILED"
+            db.commit()

@@ -11,6 +11,7 @@ api/uploads/
 # Environment
 .env
 .env.*
+!.env.example
 
 # Next.js
 .next/
@@ -32,3 +33,24 @@ Thumbs.db
 
 # Secrets
 token.txt
+
+# Database
+*.db
+# Runtime / temporary files
+api/temp_downloads/
+scratch/
+
+# Test / local datasets
+test_dataset.csv
+api/Sales.csv
+
+# Agent temporary scripts
+api/test_auth_regression.py
+api/test_dataset_regression.py
+api/test_pg.py
+api/test_s3.py
+api/test_sqlite.py
+api/check_db.py
+api/verify_schema.py
+openapi_paths.txt
+redesign-prompt.md

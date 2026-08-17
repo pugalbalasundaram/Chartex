@@ -22,10 +22,7 @@ def get_current_user(
 ):
     token = credentials.credentials
 
-    print("=" * 60)
-    print("TOKEN:", token)
-    print("SECRET_KEY:", SECRET_KEY)
-    print("ALGORITHM:", ALGORITHM)
+
 
     try:
         payload = jwt.decode(
@@ -34,21 +31,19 @@ def get_current_user(
             algorithms=[ALGORITHM]
         )
 
-        print("PAYLOAD:", payload)
-
         email = payload.get("sub")
+        token_type = payload.get("token_type")
 
-        if email is None:
+        if email is None or token_type != "access":
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Invalid token"
+                detail="Invalid authentication token."
             )
 
-    except JWTError as e:
-        print("JWT ERROR:", str(e))
+    except JWTError:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail=f"JWT Error: {str(e)}"
+            detail="Session expired. Please log in again."
         )
 
     user = db.query(User).filter(User.email == email).first()
@@ -57,6 +52,12 @@ def get_current_user(
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="User not found"
+        )
+
+    if not user.email_verified:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Email verification required."
         )
 
     return user

@@ -1,4 +1,4 @@
-from sqlalchemy import Column, DateTime, ForeignKey, Integer, String
+from sqlalchemy import Column, DateTime, ForeignKey, Integer, String, JSON
 from sqlalchemy.sql import func
 from sqlalchemy.orm import relationship
 
@@ -21,10 +21,19 @@ class Dataset(Base):
         server_default=func.now(),
     )
 
+    analysis_status = Column(String, default="PENDING")
+    analysis_cache = Column(JSON, nullable=True)
+
     owner_id = Column(
         Integer,
         ForeignKey("users.id"),
-        nullable=False,
+        nullable=True,
+    )
+    
+    session_id = Column(
+        String, 
+        nullable=True, 
+        index=True
     )
 
     owner = relationship("User", back_populates="datasets")

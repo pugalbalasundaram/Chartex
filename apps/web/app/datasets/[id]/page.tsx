@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState, useMemo, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
 import {
   ArrowLeft,
@@ -52,12 +52,10 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { toast } from "sonner";
 
 interface Dataset {
-  id: string;
-  filename: string;
-  original_filename: string;
-  file_size: number;
-  rows: number;
-  columns: number;
+  id: string | number;
+  name: string;
+  stored_filename: string;
+  size: number;
   uploaded_at: string;
   file_type: string;
 }
@@ -72,8 +70,14 @@ type CellValue =
 type PreviewRow = Record<string, CellValue>;
 
 interface PreviewResponse {
-  columns: string[];
-  rows: PreviewRow[];
+  column_names: string[];
+  preview: PreviewRow[];
+  summary: {
+    rows: number;
+    columns: number;
+    memory_usage_mb: number;
+    quality_score: number;
+  };
 }
 
 const formatBytes = (bytes: number) => {
@@ -108,9 +112,11 @@ export default function DatasetDetailsPage() {
 
   const [search, setSearch] = useState("");
 
-  const loadDataset = async (showRefresh = false) => {
+  const loadDataset = useCallback(async (showRefreshLoader = false) => {
+    if (!datasetId) return;
+
     try {
-      if (showRefresh) {
+      if (showRefreshLoader) {
         setRefreshing(true);
       } else {
         setLoading(true);
@@ -123,27 +129,30 @@ export default function DatasetDetailsPage() {
 
       setDataset(datasetRes.data);
       setPreview(previewRes.data);
-    } catch (error) {
+    } catch (err) {
+      console.error(err);
       toast.error("Failed to load dataset.");
       router.push("/datasets");
     } finally {
       setLoading(false);
       setRefreshing(false);
     }
-  };
+  }, [datasetId, router]);
 
   useEffect(() => {
-    loadDataset();
-  }, [datasetId]);
+    setTimeout(() => {
+      loadDataset();
+    }, 0);
+  }, [loadDataset]);
 
   const filteredRows = useMemo(() => {
-    if (!preview) return [];
+    if (!preview || !preview.preview) return [];
 
-    if (!search.trim()) return preview.rows;
+    if (!search.trim()) return preview.preview;
 
     const query = search.toLowerCase();
 
-    return preview.rows.filter((row) =>
+    return preview.preview.filter((row) =>
       Object.values(row).some((value) =>
         String(value ?? "")
           .toLowerCase()
@@ -169,7 +178,7 @@ export default function DatasetDetailsPage() {
 
       link.href = url;
       link.download =
-        dataset?.original_filename ?? "dataset";
+        dataset?.name ?? "dataset";
 
       document.body.appendChild(link);
 
@@ -223,7 +232,7 @@ export default function DatasetDetailsPage() {
           </Button>
 
           <h1 className="text-3xl font-bold tracking-tight">
-            {dataset.original_filename}
+            {dataset.name}
           </h1>
 
           <p className="text-muted-foreground">
@@ -302,7 +311,7 @@ export default function DatasetDetailsPage() {
 
             <CardTitle className="flex items-center gap-2 text-3xl">
               <Table2 className="h-6 w-6 text-primary" />
-              {dataset.rows.toLocaleString()}
+              {(preview?.summary?.rows ?? 0).toLocaleString()}
             </CardTitle>
           </CardHeader>
         </Card>
@@ -313,7 +322,7 @@ export default function DatasetDetailsPage() {
 
             <CardTitle className="flex items-center gap-2 text-3xl">
               <Database className="h-6 w-6 text-primary" />
-              {dataset.columns}
+              {(preview?.summary?.columns ?? 0).toLocaleString()}
             </CardTitle>
           </CardHeader>
         </Card>
@@ -324,7 +333,7 @@ export default function DatasetDetailsPage() {
 
             <CardTitle className="flex items-center gap-2 text-3xl">
               <HardDrive className="h-6 w-6 text-primary" />
-              {formatBytes(dataset.file_size)}
+              {formatBytes(dataset.size)}
             </CardTitle>
           </CardHeader>
         </Card>
@@ -364,7 +373,7 @@ export default function DatasetDetailsPage() {
                 <FileText className="h-4 w-4 text-primary" />
 
                 <span className="font-medium break-all">
-                  {dataset.original_filename}
+                  {dataset.name}
                 </span>
               </div>
             </div>
@@ -386,15 +395,15 @@ export default function DatasetDetailsPage() {
 
           <div className="flex flex-wrap gap-3">
             <Badge variant="secondary">
-              {dataset.rows.toLocaleString()} Rows
+              {(preview?.summary?.rows ?? 0).toLocaleString()} Rows
             </Badge>
 
             <Badge variant="secondary">
-              {dataset.columns} Columns
+              {(preview?.summary?.columns ?? 0).toLocaleString()} Columns
             </Badge>
 
             <Badge variant="secondary">
-              {formatBytes(dataset.file_size)}
+              {formatBytes(dataset.size)}
             </Badge>
 
             <Badge>
@@ -433,7 +442,7 @@ export default function DatasetDetailsPage() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  {preview.columns.map((column) => (
+                  {preview.column_names?.map((column) => (
                     <TableHead
                       key={column}
                       className="whitespace-nowrap"
@@ -448,7 +457,7 @@ export default function DatasetDetailsPage() {
                                 {filteredRows.length === 0 ? (
                   <TableRow>
                     <TableCell
-                      colSpan={preview.columns.length}
+                      colSpan={preview.column_names?.length || 1}
                       className="py-10 text-center text-muted-foreground"
                     >
                       No matching rows found.
@@ -457,7 +466,7 @@ export default function DatasetDetailsPage() {
                 ) : (
                   filteredRows.map((row, rowIndex) => (
                     <TableRow key={rowIndex}>
-                      {preview.columns.map((column) => (
+                      {preview.column_names?.map((column) => (
                         <TableCell
                           key={`${rowIndex}-${column}`}
                           className="max-w-xs whitespace-nowrap"

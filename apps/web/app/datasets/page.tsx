@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { getDatasets } from "@/lib/auth";
+import { getDatasets } from "@/lib/api";
 import DatasetListTable from "@/components/dataset/DatasetListTable";
 import { motion } from "framer-motion";
 import DashboardLayout from "@/components/dashboard/DashboardLayout";
@@ -15,14 +15,15 @@ export default function DatasetsPage() {
   const [datasets, setDatasets] = useState<Dataset[]>([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => { loadDatasets(); }, []);
-
-  async function loadDatasets() {
-    try {
-      const data = await getDatasets();
-      setDatasets(data);
-    } catch (error) { console.error(error); } finally { setLoading(false); }
-  }
+  useEffect(() => {
+    async function loadDatasets() {
+      try {
+        const data = await getDatasets();
+        setDatasets(data);
+      } catch (error) { console.error(error); } finally { setLoading(false); }
+    }
+    loadDatasets();
+  }, []);
 
   const totalSize = datasets.reduce((acc, d) => acc + d.size, 0) / 1024 / 1024;
   const totalRows = datasets.reduce((acc, d) => acc + d.rows, 0);

@@ -15,6 +15,8 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
+import CursorSpotlight from "@/components/ui/CursorSpotlight";
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -27,11 +29,12 @@ export default function RootLayout({
       lang="en"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col">
+      <body className="min-h-full flex flex-col bg-background text-foreground">
+        <CursorSpotlight />
         {!isSplashComplete && (
           <SplashScreen onComplete={() => setIsSplashComplete(true)} />
         )}
-        <div style={{ opacity: isSplashComplete ? 1 : 0, transition: "opacity 0.5s" }}>
+        <div style={{ opacity: isSplashComplete ? 1 : 0, transition: "opacity 0.5s" }} className="flex-1">
           {children}
         </div>
       </body>

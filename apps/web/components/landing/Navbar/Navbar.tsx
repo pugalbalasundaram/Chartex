@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { ArrowUpRight, BarChart3, Menu } from "lucide-react";
+import { ArrowRight, Bot, Menu } from "lucide-react";
 import { motion } from "framer-motion";
 import Container from "@/components/common/Container";
 
@@ -18,42 +18,35 @@ export default function Navbar() {
       initial={{ y: -80, opacity: 0 }}
       animate={{ y: 0, opacity: 1 }}
       transition={{ duration: 0.5 }}
-      className="fixed top-0 z-50 w-full border-b border-white/10 bg-[#05070c]/70 backdrop-blur-xl"
+      className="fixed top-0 z-50 w-full border-b border-border bg-background/80 backdrop-blur-2xl"
     >
       <Container className="flex h-[72px] items-center justify-between">
-        <Link href="/" className="flex items-center gap-2">
-          <motion.div
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            className="rounded-xl bg-cyan-950/30 p-1.5 shadow-[0_0_15px_rgba(34,211,238,0.2)] transition-shadow hover:shadow-[0_0_25px_rgba(34,211,238,0.4)]"
-          >
-            <BarChart3 className="h-7 w-7 text-cyan-400" />
-          </motion.div>
-          <span className="text-xl font-bold tracking-tight text-white">
+        <Link href="/" className="flex items-center gap-3">
+          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-cyan-400 to-blue-600 shadow-lg shadow-cyan-950/20">
+            <Bot className="h-5 w-5 text-white" />
+          </div>
+          <span className="text-xl font-bold text-white tracking-tight">
             Char(t)ex
           </span>
         </Link>
 
-        <nav className="hidden items-center gap-7 lg:flex">
+        <nav className="hidden items-center gap-8 lg:flex">
           {navItems.map((item) => (
             <Link
               key={item.label}
               href={item.href}
-              className="text-sm text-slate-300 transition hover:text-white"
+              className="text-sm font-medium text-slate-400 transition hover:text-white"
             >
               {item.label}
             </Link>
           ))}
         </nav>
 
-        <div className="flex items-center gap-3">
-          <Link href="/login" className="hidden text-sm text-slate-300 transition hover:text-white sm:block">
-            Sign in
+        <div className="flex items-center gap-4">
+          <Link href="/chat" className="group flex items-center gap-2 rounded-xl bg-white px-5 py-2.5 text-sm font-bold text-slate-950 transition hover:bg-cyan-400">
+            Start Analyzing <ArrowRight className="h-4 w-4" />
           </Link>
-          <Link href="/register" className="group flex items-center gap-1.5 rounded-full bg-white px-4 py-2 text-sm font-semibold text-slate-950 transition hover:bg-cyan-200">
-            Start for free <ArrowUpRight className="h-3.5 w-3.5 transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5" />
-          </Link>
-          <Menu className="h-5 w-5 text-slate-300 lg:hidden" />
+          <Menu className="h-6 w-6 text-white lg:hidden" />
         </div>
       </Container>
     </motion.header>

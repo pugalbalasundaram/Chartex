@@ -7,6 +7,7 @@ from app.database.database import Base, engine
 # Import all models so SQLAlchemy can create their tables
 from app.models.user import User
 from app.models.dataset import Dataset
+from app.models.refresh_token import RefreshToken
 
 # Routers
 from app.routers.auth import router as auth_router
@@ -20,16 +21,25 @@ app = FastAPI(
     description="AI-Native Analytics Platform",
 )
 
-# Create all database tables
-Base.metadata.create_all(bind=engine)
+# Ensure database tables are created via Alembic migrations, not create_all
+# Base.metadata.create_all(bind=engine)
+
+import os
+
+allowed_origins_str = os.getenv("ALLOWED_ORIGINS")
+if allowed_origins_str:
+    origins = [origin.strip() for origin in allowed_origins_str.split(",") if origin.strip()]
+else:
+    # Fallback to local development origins if not configured
+    origins = [
+        "http://localhost:3000",
+        "http://127.0.0.1:3000",
+    ]
 
 # CORS Configuration
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:3000",
-        "http://127.0.0.1:3000",
-    ],
+    allow_origins=origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

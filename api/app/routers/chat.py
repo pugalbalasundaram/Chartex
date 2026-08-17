@@ -1,16 +1,18 @@
 from pathlib import Path
 import json
+import logging
 
 import pandas as pd
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import StreamingResponse
 from starlette.concurrency import iterate_in_threadpool
 
+logger = logging.getLogger(__name__)
+
 from app.database.database import get_db
 from sqlalchemy.orm import Session
 from app.models.dataset import Dataset
-from app.models.user import User
-from app.core.auth import get_current_user
+from app.core.session import get_anonymous_session
 
 from app.schemas.chat import (
     ChatRequest,
@@ -23,6 +25,7 @@ from app.services.intent_service import (
     Intent,
     IntentService,
 )
+from app.services.storage_service import StorageService
 from app.services.llm_service import LLMService
 
 router = APIRouter(
@@ -36,6 +39,8 @@ analysis = AnalysisService()
 
 intent_service = IntentService()
 
+storage_service = StorageService()
+
 
 @router.post(
     "/stream",
@@ -43,13 +48,13 @@ intent_service = IntentService()
 async def chat_stream(
     request: ChatRequest,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    session_id: str = Depends(get_anonymous_session)
 ):
     dataset = (
         db.query(Dataset)
         .filter(
             Dataset.id == request.dataset_id,
-            Dataset.owner_id == current_user.id
+            Dataset.session_id == session_id
         )
         .first()
     )
@@ -60,17 +65,13 @@ async def chat_stream(
             detail="Dataset not found.",
         )
 
-    upload_dir = Path("uploads")
-
-    file_path = (
-        upload_dir /
-        dataset.stored_filename
-    )
-
-    if not file_path.exists():
+    try:
+        local_file_path = storage_service.get_file_path_for_reading(dataset.stored_filename)
+        file_path = Path(local_file_path)
+    except FileNotFoundError:
         raise HTTPException(
             status_code=404,
-            detail=f"Dataset file not found: {file_path}",
+            detail=f"Dataset file not found.",
         )
 
     suffix = file_path.suffix.lower()
@@ -106,12 +107,40 @@ async def chat_stream(
     data_types = DatasetService._data_types(dataframe)
     history = [msg.dict() for msg in request.history]
 
-    async def generate_response():
-        async for chunk in iterate_in_threadpool(llm.ask_stream(dataframe, statistics, data_types, request.message, history)):
-            yield f"data: {json.dumps({'content': chunk})}\n\n"
-        yield "data: [DONE]\n\n"
+    from app.services.agent_service import AgentService
+    agent_service = AgentService()
 
-    return StreamingResponse(generate_response(), media_type="text/event-stream")
+    import asyncio
+
+    async def generate_response():
+        try:
+            generator = agent_service.process_query_stream(dataframe, statistics, data_types, request.message, history)
+            # Create an async iterator from the sync generator via threadpool
+            async_gen = iterate_in_threadpool(generator)
+            
+            while True:
+                try:
+                    # Wait for next chunk with a timeout for heartbeat
+                    chunk = await asyncio.wait_for(async_gen.__anext__(), timeout=15.0)
+                    yield f"data: {chunk}\n\n"
+                except asyncio.TimeoutError:
+                    # Yield heartbeat to prevent proxy timeout
+                    yield "data: [HEARTBEAT]\n\n"
+                except StopAsyncIteration:
+                    break
+
+            yield "data: [DONE]\n\n"
+        except asyncio.CancelledError:
+            logger.info(f"Session {session_id} disconnected during SSE stream for dataset {dataset.id}.")
+            return
+
+    headers = {
+        "Cache-Control": "no-cache",
+        "X-Accel-Buffering": "no",
+        "Connection": "keep-alive"
+    }
+
+    return StreamingResponse(generate_response(), media_type="text/event-stream", headers=headers)
 
 
 @router.post(
@@ -121,14 +150,14 @@ async def chat_stream(
 async def chat(
     request: ChatRequest,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    session_id: str = Depends(get_anonymous_session)
 ):
     try:
         dataset = (
             db.query(Dataset)
             .filter(
                 Dataset.id == request.dataset_id,
-                Dataset.owner_id == current_user.id
+                Dataset.session_id == session_id
             )
             .first()
         )
@@ -139,17 +168,13 @@ async def chat(
                 detail="Dataset not found.",
             )
 
-        upload_dir = Path("uploads")
-
-        file_path = (
-            upload_dir /
-            dataset.stored_filename
-        )
-
-        if not file_path.exists():
+        try:
+            local_file_path = storage_service.get_file_path_for_reading(dataset.stored_filename)
+            file_path = Path(local_file_path)
+        except FileNotFoundError:
             raise HTTPException(
                 status_code=404,
-                detail=f"Dataset file not found: {file_path}",
+                detail=f"Dataset file not found.",
             )
 
         suffix = file_path.suffix.lower()

@@ -7,31 +7,31 @@ import { DollarSign, Users, BrainCircuit } from "lucide-react";
 
 export default function DashboardPreview() {
   return (
-    <section id="dashboard" className="bg-slate-950 py-28">
+    <section id="dashboard" className="bg-background py-28">
       <Container>
         {/* Section Heading */}
-        <div className="mb-16 text-center">
-          <span className="rounded-full border border-cyan-400/20 bg-cyan-400/10 px-4 py-2 text-sm text-cyan-300">
-            LIVE DASHBOARD
+        <div className="mb-20 text-center">
+          <span className="rounded-full border border-white/[0.05] bg-white/[0.02] px-4 py-2 text-xs font-bold uppercase tracking-widest text-cyan-400">
+            Live Dashboard
           </span>
 
-          <h2 className="mt-6 text-5xl font-bold text-white">
-            See Your Data Come Alive
+          <h2 className="mt-8 text-5xl font-extrabold tracking-tighter text-white sm:text-6xl">
+            See your data come alive
           </h2>
 
-          <p className="mx-auto mt-6 max-w-3xl text-lg text-slate-400">
+          <p className="mx-auto mt-6 max-w-3xl text-lg text-slate-400 leading-relaxed">
             Char(t)ex transforms raw business data into interactive dashboards,
             AI-powered insights, and actionable metrics within seconds.
           </p>
         </div>
 
         {/* Dashboard */}
-        <div className="rounded-3xl border border-white/10 bg-slate-900/60 p-8 backdrop-blur-xl">
-          <div className="space-y-6">
+        <div className="rounded-3xl border border-white/[0.05] bg-white/[0.02] p-8">
+          <div className="space-y-8">
             {/* Top Row */}
-            <div className="grid gap-6 lg:grid-cols-3">
+            <div className="grid gap-8 lg:grid-cols-3">
               {/* Revenue Chart */}
-              <div className="lg:col-span-2">
+              <div className="lg:col-span-2 rounded-3xl border border-white/[0.05] bg-white/[0.02] p-8">
                 <AreaRevenueChart
                   chartData={{
                     labels: ["Jan", "Feb", "Mar", "Apr", "May", "Jun"],
@@ -41,37 +41,20 @@ export default function DashboardPreview() {
               </div>
 
               {/* AI Insights */}
-              <div className="rounded-2xl border border-white/10 bg-slate-900 p-6">
-                <h3 className="text-xl font-semibold text-white">
-                  AI Insights
-                </h3>
-
-                <div className="mt-6 space-y-4">
-                  <div className="rounded-xl bg-slate-800 p-4">
-                    <p className="text-sm text-cyan-400">Revenue</p>
-
-                    <p className="mt-2 text-slate-300">
-                      Revenue increased by <strong>18%</strong> compared to
-                      last month.
-                    </p>
+              <div className="rounded-3xl border border-white/[0.05] bg-white/[0.02] p-8">
+                <h3 className="text-xl font-bold text-white tracking-tight">AI Insights</h3>
+                <div className="mt-8 space-y-6">
+                  <div className="rounded-2xl border border-white/[0.05] bg-white/[0.02] p-5">
+                    <p className="text-xs font-bold text-cyan-400">Revenue</p>
+                    <p className="mt-2 text-sm text-slate-300">Revenue increased by <strong className="text-white">18%</strong> compared to last month.</p>
                   </div>
-
-                  <div className="rounded-xl bg-slate-800 p-4">
-                    <p className="text-sm text-cyan-400">Recommendation</p>
-
-                    <p className="mt-2 text-slate-300">
-                      Focus on enterprise customers to maximize recurring
-                      revenue.
-                    </p>
+                  <div className="rounded-2xl border border-white/[0.05] bg-white/[0.02] p-5">
+                    <p className="text-xs font-bold text-cyan-400">Recommendation</p>
+                    <p className="mt-2 text-sm text-slate-300">Focus on enterprise customers to maximize recurring revenue.</p>
                   </div>
-
-                  <div className="rounded-xl bg-slate-800 p-4">
-                    <p className="text-sm text-cyan-400">Prediction</p>
-
-                    <p className="mt-2 text-slate-300">
-                      AI predicts another <strong>12%</strong> growth next
-                      month if current trends continue.
-                    </p>
+                  <div className="rounded-2xl border border-white/[0.05] bg-white/[0.02] p-5">
+                    <p className="text-xs font-bold text-cyan-400">Prediction</p>
+                    <p className="mt-2 text-sm text-slate-300">AI predicts another <strong className="text-white">12%</strong> growth next month.</p>
                   </div>
                 </div>
               </div>

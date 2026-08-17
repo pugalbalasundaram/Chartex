@@ -21,6 +21,8 @@ export interface ChatMessage {
 
   tableData: Record<string, unknown>[] | null;
 
+  generatedCode: string | null;
+
   suggestions: string[];
 }
 
@@ -63,9 +65,11 @@ export default function ChatWindow({
             chartType={message.chartType}
             chartData={message.chartData}
             tableData={message.tableData}
+            generatedCode={message.generatedCode}
             suggestions={message.suggestions}
             onSuggestionClick={setPrompt}
             onRegenerate={message.role === "assistant" ? onRegenerate : undefined}
+            isComplete={!loading || index !== messages.length - 1}
           />
 
         ))}

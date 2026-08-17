@@ -6,14 +6,14 @@ import { plans } from "./plans";
 
 export default function Pricing() {
   return (
-    <section id="pricing" className="bg-slate-950 py-28">
+    <section id="pricing" className="bg-background py-28">
       <Container>
-        <div className="mb-16 text-center">
-          <span className="rounded-full border border-cyan-400/20 bg-cyan-400/10 px-4 py-2 text-sm text-cyan-300">
-            PRICING
+        <div className="mb-20 text-center">
+          <span className="rounded-full border border-white/[0.05] bg-white/[0.02] px-4 py-2 text-xs font-bold uppercase tracking-widest text-cyan-400">
+            Pricing Plans
           </span>
 
-          <h2 className="mt-6 text-5xl font-bold text-white">
+          <h2 className="mt-8 text-5xl font-extrabold tracking-tighter text-white sm:text-6xl">
             Simple Pricing
           </h2>
 
