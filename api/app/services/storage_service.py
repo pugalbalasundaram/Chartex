@@ -43,6 +43,26 @@ class StorageService:
             )
             return stored_filename
 
+    def generate_presigned_upload_url(self, stored_filename: str, content_type: str = "text/csv") -> str:
+        """Generates a presigned URL for direct client-to-S3 uploads."""
+        if self.backend == "local":
+            raise NotImplementedError("Presigned URLs are not supported with local storage.")
+            
+        try:
+            response = self.s3.generate_presigned_url(
+                'put_object',
+                Params={
+                    'Bucket': self.s3_bucket,
+                    'Key': stored_filename,
+                    'ContentType': content_type
+                },
+                ExpiresIn=3600 # 1 hour
+            )
+            return response
+        except ClientError as e:
+            logger.error(f"Failed to generate presigned URL for {stored_filename}: {e}")
+            raise
+
     def get_file_path_for_reading(self, stored_filename: str) -> str:
         """
         Returns a local filepath for reading. 

@@ -1,16 +1,50 @@
 import api from "./axios";
 
 export const uploadDataset = async (file: File) => {
-  const formData = new FormData();
-  formData.append("file", file);
+  try {
+    // 1. Get presigned URL
+    const presignRes = await api.get("/upload/presigned-url", {
+      params: {
+        filename: file.name,
+        content_type: file.type || "text/csv",
+      }
+    });
 
-  const response = await api.post("/upload/", formData, {
-    headers: {
-      "Content-Type": "multipart/form-data",
-    },
-  });
+    const { presigned_url, stored_filename, original_filename } = presignRes.data;
 
-  return response.data;
+    // 2. Upload directly to S3
+    await fetch(presigned_url, {
+      method: "PUT",
+      body: file,
+      headers: {
+        "Content-Type": file.type || "text/csv",
+      },
+    });
+
+    // 3. Finalize upload
+    const finalizeRes = await api.post("/upload/finalize", {
+      original_filename,
+      stored_filename,
+      file_size: file.size,
+    });
+
+    return finalizeRes.data;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  } catch (err: any) {
+    // Fallback to direct upload if presigned URLs are not supported (e.g., local storage backend)
+    if (err.response?.status === 400 && err.response?.data?.detail?.includes("not supported")) {
+      const formData = new FormData();
+      formData.append("file", file);
+
+      const response = await api.post("/upload/", formData, {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+      });
+      return response.data;
+    }
+    throw err;
+  }
 };
 
 export async function getDatasets() {
